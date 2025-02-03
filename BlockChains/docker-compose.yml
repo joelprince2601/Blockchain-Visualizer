@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  blockchain:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./blockchain.db:/app/blockchain.db
+    environment:
+      - FLASK_ENV=production
+      - GUNICORN_WORKERS=4 

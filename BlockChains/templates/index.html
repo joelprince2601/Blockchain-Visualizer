@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Blockchain Visualizer</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style type="text/css">
+        #blockchain-network {
+            width: 100%;
+            height: 600px;
+            border: 1px solid lightgray;
+        }
+        .metrics-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .metric-box {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="metrics-container">
+        <div class="metric-box">
+            <h3>Basic Metrics</h3>
+            <div id="basic-metrics"></div>
+        </div>
+        <div class="metric-box">
+            <h3>Transaction Volume</h3>
+            <canvas id="volume-chart"></canvas>
+        </div>
+    </div>
+    
+    <div id="blockchain-network"></div>
+    
+    <script type="text/javascript">
+        // Fetch and display blockchain graph
+        async function displayBlockchainGraph() {
+            const response = await fetch('/visualization/graph');
+            const data = await response.json();
+            
+            const container = document.getElementById('blockchain-network');
+            const options = {
+                nodes: {
+                    shape: 'box',
+                    font: {
+                        size: 16
+                    }
+                },
+                edges: {
+                    arrows: 'to'
+                },
+                physics: {
+                    enabled: true,
+                    hierarchicalRepulsion: {
+                        centralGravity: 0.0,
+                        springLength: 100,
+                        springConstant: 0.01,
+                        nodeDistance: 120
+                    },
+                    solver: 'hierarchicalRepulsion'
+                }
+            };
+            
+            const network = new vis.Network(container, data, options);
+            
+            // Add click event
+            network.on('click', function(params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    const node = data.nodes.find(n => n.id === nodeId);
+                    alert(JSON.stringify(node, null, 2));
+                }
+            });
+        }
+
+        // Fetch and display metrics
+        async function displayMetrics() {
+            const response = await fetch('/metrics/basic');
+            const metrics = await response.json();
+            
+            document.getElementById('basic-metrics').innerHTML = `
+                <p>Total Blocks: ${metrics.total_blocks}</p>
+                <p>Total Transactions: ${metrics.total_transactions}</p>
+                <p>Average Block Time: ${metrics.average_block_time.toFixed(2)}s</p>
+                <p>Current Difficulty: ${metrics.current_difficulty}</p>
+                <p>Chain Valid: ${metrics.chain_valid}</p>
+            `;
+        }
+
+        // Fetch and display volume chart
+        async function displayVolumeChart() {
+            const response = await fetch('/metrics/time');
+            const data = await response.json();
+            
+            const ctx = document.getElementById('volume-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(data.daily_volume),
+                    datasets: [{
+                        label: 'Daily Transaction Volume',
+                        data: Object.values(data.daily_volume),
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                }
+            });
+        }
+
+        // Initialize visualizations
+        displayBlockchainGraph();
+        displayMetrics();
+        displayVolumeChart();
+
+        // Update every 30 seconds
+        setInterval(() => {
+            displayBlockchainGraph();
+            displayMetrics();
+            displayVolumeChart();
+        }, 30000);
+    </script>
+</body>
+</html> 
